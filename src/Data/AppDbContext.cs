@@ -1,17 +1,17 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using bestvinnytsa.web.Data.Models;
 
 namespace bestvinnytsa.web.Data
 {
-    public class AppDbContext : DbContext
+    public class AppDbContext : IdentityDbContext<AppUser>
     {
         public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options)
         {
         }
 
-        public DbSet<Role> Roles { get; set; }
-        public DbSet<User> Users { get; set; }
+        public new DbSet<Role> Roles { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Campaign> Campaigns { get; set; }
         public DbSet<Application> Applications { get; set; }
@@ -20,51 +20,80 @@ namespace bestvinnytsa.web.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Унікальні індекси
+            modelBuilder.Entity<Role>()
+                .HasKey(r => r.Id);
+
+            modelBuilder.Entity<Role>()
+                .Property(r => r.Name)
+                .IsRequired();
+
             modelBuilder.Entity<Role>()
                 .HasIndex(r => r.Name)
                 .IsUnique();
 
-            modelBuilder.Entity<User>()
-                .HasIndex(u => u.Email)
-                .IsUnique();
-
-            // Зв’язки: User → Role
-            modelBuilder.Entity<User>()
+            modelBuilder.Entity<AppUser>()
                 .HasOne(u => u.Role)
                 .WithMany(r => r.Users)
                 .HasForeignKey(u => u.RoleId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Зв’язки: Campaign → Producer (User)
-            modelBuilder.Entity<Campaign>()
-                .HasOne(c => c.Producer)
-                .WithMany(u => u.Campaigns)
-                .HasForeignKey(c => c.ProducerId)
-                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Category>()
+                .HasKey(c => c.Id);
 
-            // Зв’язки: Campaign → Category
+            modelBuilder.Entity<Category>()
+                .Property(c => c.Name)
+                .IsRequired();
+
             modelBuilder.Entity<Campaign>()
-                .HasOne(c => c.Category)
+                .HasOne(ca => ca.Category)
                 .WithMany(cat => cat.Campaigns)
-                .HasForeignKey(c => c.CategoryId)
+                .HasForeignKey(ca => ca.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Зв’язки: Application → Campaign
+            modelBuilder.Entity<Campaign>()
+                .HasKey(ca => ca.Id);
+
+            modelBuilder.Entity<Campaign>()
+                .Property(ca => ca.Name)
+                .IsRequired();
+
+            modelBuilder.Entity<Campaign>()
+                .Property(ca => ca.Budget)
+                .IsRequired();
+
+            modelBuilder.Entity<Campaign>()
+                .Property(ca => ca.Description)
+                .IsRequired();
+
+            modelBuilder.Entity<Campaign>()
+                .Property(ca => ca.Link)
+                .IsRequired();
+
+            modelBuilder.Entity<Campaign>()
+                .HasOne(ca => ca.Producer)
+                .WithMany(u => u.Campaigns)
+                .HasForeignKey(ca => ca.ProducerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Application>()
+                .HasKey(a => a.Id);
+
+            modelBuilder.Entity<Application>()
+                .Property(a => a.ContactInfo)
+                .IsRequired();
+
             modelBuilder.Entity<Application>()
                 .HasOne(a => a.Campaign)
-                .WithMany(c => c.Applications)
+                .WithMany(ca => ca.Applications)
                 .HasForeignKey(a => a.CampaignId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Зв’язки: Application → Influencer (User)
             modelBuilder.Entity<Application>()
                 .HasOne(a => a.Influencer)
                 .WithMany(u => u.Applications)
                 .HasForeignKey(a => a.InfluencerId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Унікальний індекс: один інфлюенсер не може подати дві заявки до тієї ж кампанії
             modelBuilder.Entity<Application>()
                 .HasIndex(a => new { a.CampaignId, a.InfluencerId })
                 .IsUnique();

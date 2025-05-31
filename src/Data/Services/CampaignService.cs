@@ -53,11 +53,14 @@ namespace bestvinnytsa.web.Data.Services
             }
         }
 
+        // Тепер підпис відповідає інтерфейсу ICampaignService.GetByProducerAsync(int)
         public async Task<List<Campaign>> GetByProducerAsync(int producerId)
         {
+            // ProducerId у моделі — string, тому приводимо int до рядка
+            string pid = producerId.ToString();
             return await _db.Campaigns
                 .Include(c => c.Category)
-                .Where(c => c.ProducerId == producerId)
+                .Where(c => c.ProducerId == pid)
                 .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync();
         }
