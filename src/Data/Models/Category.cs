@@ -1,30 +1,26 @@
-﻿using System.Collections.Generic;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+using System.Collections.Generic;
 
 namespace bestvinnytsa.web.Data.Models
 {
     /// <summary>
-    /// Категорія для кампаній (наприклад: "Beauty", "Tech", "Food").
+    /// Сутність категорії (наприклад, "Косметика", "Їжа", "Технології").
+    /// Зберігається в колекції "Categories".
     /// </summary>
     public class Category
     {
-        /// <summary>
-        /// Унікальний ідентифікатор категорії.
-        /// </summary>
-        public short Id { get; set; }
+        [BsonId]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string Id { get; set; } = null!;
 
-        /// <summary>
-        /// Назва категорії.
-        /// </summary>
+        [BsonElement("name")]
         public string Name { get; set; } = null!;
 
-        /// <summary>
-        /// Опис категорії (опціонально).
-        /// </summary>
-        public string? Description { get; set; }
+        [BsonElement("description")]
+        public string Description { get; set; } = null!;
 
-        /// <summary>
-        /// Кампанії, що належать до цієї категорії.
-        /// </summary>
-        public ICollection<Campaign> Campaigns { get; set; } = new List<Campaign>();
+        [BsonIgnore]
+        public List<Campaign> Campaigns { get; set; } = new();
     }
 }

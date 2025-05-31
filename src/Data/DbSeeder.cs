@@ -1,65 +1,58 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
 using bestvinnytsa.web.Data.Models;
-using Microsoft.AspNetCore.Identity;
+using bestvinnytsa.web.Data.Mongo;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Driver;
 
 namespace bestvinnytsa.web.Data
 {
+    /// <summary>
+    /// Seeder для MongoDB: створює початкові ролі та категорії, якщо їх нема.
+    /// </summary>
     public static class DbSeeder
     {
         public static async Task SeedRolesAndCategoriesAsync(IServiceProvider serviceProvider)
         {
             using var scope = serviceProvider.CreateScope();
-            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
-            var context     = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var mongoContext = scope.ServiceProvider.GetRequiredService<MongoContext>();
 
+            var rolesCollection = mongoContext.Roles;
+            var categoriesCollection = mongoContext.Categories;
 
+            // 1) Seeder для ролей
             string[] roles = new[] { "Producer", "Influencer" };
             foreach (var roleName in roles)
             {
-                if (!await roleManager.RoleExistsAsync(roleName))
+                string normalizedRole = roleName.ToUpperInvariant();
+                bool exists = await rolesCollection
+                    .Find(r => r.NormalizedName == normalizedRole)
+                    .AnyAsync();
+
+                if (!exists)
                 {
-                    await roleManager.CreateAsync(new IdentityRole(roleName));
+                    var newRole = new AppRole
+                    {
+                        Name = roleName,
+                        NormalizedName = normalizedRole
+                    };
+                    await rolesCollection.InsertOneAsync(newRole);
                 }
             }
 
-         
-            if (!context.Categories.Any())
+            // 2) Seeder для категорій
+            bool anyCategories = await categoriesCollection
+                .Find(_ => true)
+                .AnyAsync();
+
+            if (!anyCategories)
             {
-                context.Categories.AddRange(
+                await categoriesCollection.InsertManyAsync(new[]
+                {
                     new Category { Name = "Косметика", Description = "Для косметичних брендів" },
                     new Category { Name = "Їжа", Description = "Товари харчування" },
                     new Category { Name = "Технології", Description = "Гаджети й електроніка" }
-                );
-                await context.SaveChangesAsync();
-            }
-
-       
-            if (!context.Users.Any())
-            {
-                var prodUser = new AppUser
-                {
-                    UserName = "producer@test.com",
-                    Email    = "producer@test.com",
-                    FullName = "Тестовий Виробник",
-                    RoleId   = 1,
-                    IsEmailConfirmed = true
-                };
-                await userManager.CreateAsync(prodUser, "Password123!");
-                await userManager.AddToRoleAsync(prodUser, "Producer");
-
-                var infUser = new AppUser
-                {
-                    UserName = "influencer@test.com",
-                    Email    = "influencer@test.com",
-                    FullName = "Тестовий Інфлюенсер",
-                    RoleId   = 2,
-                    IsEmailConfirmed = true
-                };
-                await userManager.CreateAsync(infUser, "Password123!");
-                await userManager.AddToRoleAsync(infUser, "Influencer");
+                });
             }
         }
     }

@@ -1,47 +1,93 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using bestvinnytsa.web.Data.Mongo;
 using bestvinnytsa.web.Data.Models;
-using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver;
 
 namespace bestvinnytsa.web.Data.Services
 {
+    /// <summary>
+    /// Реалізація сервісу ApplicationService для MongoDB.
+    /// </summary>
     public class ApplicationService : IApplicationService
     {
-        private readonly AppDbContext _db;
-        public ApplicationService(AppDbContext db) => _db = db;
+        private readonly IMongoCollection<Application> _applications;
 
-        public async Task<List<Application>> GetByCampaignAsync(int campaignId)
+        public ApplicationService(MongoContext mongoContext)
         {
-            return await _db.Applications
-                .Where(a => a.CampaignId == campaignId)
-                .Include(a => a.Influencer)
-                .ToListAsync();
+            _applications = mongoContext.Applications;
         }
 
+        /// <summary>
+        /// Повертає всі заявки, де InfluencerId == userId.
+        /// </summary>
         public async Task<List<Application>> GetByInfluencerAsync(string influencerId)
         {
-            return await _db.Applications
-                .Where(a => a.InfluencerId == influencerId)
-                .Include(a => a.Campaign)
-                    .ThenInclude(c => c.Producer)
+            return await _applications
+                .Find(a => a.InfluencerId == influencerId)
                 .ToListAsync();
         }
 
-        public async Task ApplyAsync(Application newApplication)
+        /// <summary>
+        /// Повертає всі заявки до певної кампанії (CampaignId == campaignId).
+        /// </summary>
+        public async Task<List<Application>> GetByCampaignAsync(string campaignId)
         {
-            _db.Applications.Add(newApplication);
-            await _db.SaveChangesAsync();
+            return await _applications
+                .Find(a => a.CampaignId == campaignId)
+                .ToListAsync();
         }
 
-        public async Task UpdateStatusAsync(int applicationId, ApplicationStatus status)
+        /// <summary>
+        /// Повертає заявку за ObjectId (string).
+        /// </summary>
+        public async Task<Application?> GetByIdAsync(string id)
         {
-            var app = await _db.Applications.FindAsync(applicationId);
-            if (app != null)
-            {
-                app.Status = status;
-                await _db.SaveChangesAsync();
-            }
+            return await _applications
+                .Find(a => a.Id == id)
+                .FirstOrDefaultAsync();
+        }
+
+        /// <summary>
+        /// Створює нову заявку:
+        /// - Встановлює CreatedAt = UtcNow
+        /// - Встановлює Status = "Pending"
+        /// - Вставляє документ у колекцію Applications
+        /// </summary>
+        public async Task CreateAsync(Application newApplication)
+        {
+            newApplication.CreatedAt = DateTime.UtcNow;
+            newApplication.Status = "Pending";
+            await _applications.InsertOneAsync(newApplication);
+        }
+
+        /// <summary>
+        /// Повністю оновлює документ заявки (ReplaceOne).
+        /// </summary>
+        public async Task UpdateAsync(Application updatedApplication)
+        {
+            var filter = Builders<Application>.Filter.Eq(a => a.Id, updatedApplication.Id);
+            await _applications.ReplaceOneAsync(filter, updatedApplication);
+        }
+
+        /// <summary>
+        /// Змінює лише поле Status (наприклад, "Accepted", "Rejected").
+        /// </summary>
+        public async Task SetStatusAsync(string applicationId, string status)
+        {
+            var filter = Builders<Application>.Filter.Eq(a => a.Id, applicationId);
+            var update = Builders<Application>.Update.Set(a => a.Status, status);
+            await _applications.UpdateOneAsync(filter, update);
+        }
+
+        /// <summary>
+        /// Видаляє заявку (DeleteOne).
+        /// </summary>
+        public async Task DeleteAsync(string applicationId)
+        {
+            var filter = Builders<Application>.Filter.Eq(a => a.Id, applicationId);
+            await _applications.DeleteOneAsync(filter);
         }
     }
 }

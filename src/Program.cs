@@ -1,101 +1,110 @@
-using bestvinnytsa.web.Data;
-using bestvinnytsa.web.Data.Models;
+﻿using bestvinnytsa.web.Data;
+using bestvinnytsa.web.Data.Mongo;
 using bestvinnytsa.web.Data.Services;
+using Microsoft.Extensions.Options;
+using MongoDB.Driver;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
+// ----------------------------------------------------------------------
+// 1. Регіструємо MongoSettings з конфігурації
+// ----------------------------------------------------------------------
+builder.Services.Configure<MongoSettings>(
+    builder.Configuration.GetSection("MongoSettings")
 );
 
-
-builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
-    {
-        options.User.RequireUniqueEmail = true;
-        options.Password.RequiredLength = 6;
-        options.Password.RequireDigit = true;
-        options.Password.RequireLowercase = true;
-        options.Password.RequireUppercase = true;
-        options.Password.RequireNonAlphanumeric = false;
-        options.SignIn.RequireConfirmedEmail = false;
-    })
-    .AddEntityFrameworkStores<AppDbContext>()
-    .AddDefaultTokenProviders();
-
-
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey   = jwtSettings.GetValue<string>("SecretKey");
-var issuer      = jwtSettings.GetValue<string>("Issuer");
-var audience    = jwtSettings.GetValue<string>("Audience");
-
-
-builder.Services.AddAuthentication(options =>
-    {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme    = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer           = true,
-            ValidIssuer              = issuer,
-
-            ValidateAudience         = true,
-            ValidAudience            = audience,
-
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!)),
-
-            ValidateLifetime         = true,
-            ClockSkew                = TimeSpan.Zero
-        };
-    });
-
-
-builder.Services.AddCors(options =>
+// ----------------------------------------------------------------------
+// 2. Додаємо MongoClient і IMongoDatabase
+// ----------------------------------------------------------------------
+builder.Services.AddSingleton<IMongoClient>(sp =>
 {
-    options.AddPolicy("AllowReactApp", policy =>
-    {
-        policy.WithOrigins("http://localhost:3000")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
+    var settings = sp.GetRequiredService<IOptions<MongoSettings>>().Value;
+    return new MongoClient(settings.ConnectionString);
 });
 
+builder.Services.AddScoped(sp =>
+{
+    var settings = sp.GetRequiredService<IOptions<MongoSettings>>().Value;
+    var client = sp.GetRequiredService<IMongoClient>();
+    return client.GetDatabase(settings.DatabaseName);
+});
 
+// ----------------------------------------------------------------------
+// 3. Додаємо MongoContext
+// ----------------------------------------------------------------------
+builder.Services.AddScoped<MongoContext>(sp =>
+{
+    var database = sp.GetRequiredService<IMongoDatabase>();
+    return new MongoContext(database);
+});
+
+// ----------------------------------------------------------------------
+// 4. Регіструємо JwtSettings
+// ----------------------------------------------------------------------
+builder.Services.Configure<JwtSettings>(
+    builder.Configuration.GetSection("JwtSettings")
+);
+
+// ----------------------------------------------------------------------
+// 5. Регіструємо сервіси (Authentication, Campaign, Application)
+// ----------------------------------------------------------------------
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<ICampaignService, CampaignService>();
 builder.Services.AddScoped<IApplicationService, ApplicationService>();
 
+// ----------------------------------------------------------------------
+// 6. Налаштовуємо JWT-Bearer
+// ----------------------------------------------------------------------
+var jwtSection = builder.Configuration.GetSection("JwtSettings");
+var secretKey = jwtSection.GetValue<string>("SecretKey");
+var issuer = jwtSection.GetValue<string>("Issuer");
+var audience = jwtSection.GetValue<string>("Audience");
 
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidIssuer = issuer,
+        ValidateAudience = true,
+        ValidAudience = audience,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!)),
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
+builder.Services.AddAuthorization();
+
+// ----------------------------------------------------------------------
+// 7. Додаємо контролери та Swagger
+// ----------------------------------------------------------------------
 builder.Services.AddControllers();
-
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-
+// ----------------------------------------------------------------------
+// 8. Викликаємо Seeder (створюємо ролі та категорії, якщо їх нема)
+// ----------------------------------------------------------------------
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    dbContext.Database.Migrate();
-
-    await DbSeeder.SeedRolesAndCategoriesAsync(app.Services);
+    await DbSeeder.SeedRolesAndCategoriesAsync(scope.ServiceProvider);
 }
 
-
+// ----------------------------------------------------------------------
+// 9. Налаштовуємо middleware
+// ----------------------------------------------------------------------
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
@@ -111,13 +120,14 @@ else
 app.UseHttpsRedirection();
 app.UseRouting();
 
-
-app.UseCors("AllowReactApp");
-
+// (Якщо треба CORS — додайте тут)
+app.UseCors(policy =>
+    policy.AllowAnyOrigin()
+          .AllowAnyHeader()
+          .AllowAnyMethod());
 
 app.UseAuthentication();
 app.UseAuthorization();
-
 
 app.MapControllers();
 

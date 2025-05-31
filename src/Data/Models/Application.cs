@@ -1,29 +1,48 @@
-﻿// Data/Models/Application.cs
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 using System;
 
 namespace bestvinnytsa.web.Data.Models
 {
-    public enum ApplicationStatus
-    {
-        Pending,
-        Approved,
-        Rejected
-    }
-
+    /// <summary>
+    /// Сутність заявки (Application). Зберігається в колекції "Applications".
+    /// </summary>
     public class Application
     {
-        public int Id { get; set; }
+        [BsonId]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string Id { get; set; } = null!;
 
-        public int CampaignId { get; set; }
-        public Campaign Campaign { get; set; } = null!;
+        /// <summary>
+        /// ObjectId кампанії (Campaign.Id) як string.
+        /// </summary>
+        [BsonElement("campaignId")]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string CampaignId { get; set; } = null!;
 
-        // GUID користувача (AppUser.Id)
+        [BsonIgnore]
+        public Campaign? Campaign { get; set; }
+
+        /// <summary>
+        /// ObjectId інфлюенсера (AppUser.Id) як string.
+        /// </summary>
+        [BsonElement("influencerId")]
+        [BsonRepresentation(BsonType.ObjectId)]
         public string InfluencerId { get; set; } = null!;
-        public AppUser Influencer { get; set; } = null!;
 
-        public string? Message { get; set; }
+        [BsonIgnore]
+        public AppUser? Influencer { get; set; }
+
+        [BsonElement("contactInfo")]
         public string ContactInfo { get; set; } = null!;
+
+        /// <summary>
+        /// Статус заявки: "Pending", "Accepted", "Rejected" тощо.
+        /// </summary>
+        [BsonElement("status")]
+        public string Status { get; set; } = "Pending";
+
+        [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public ApplicationStatus Status { get; set; } = ApplicationStatus.Pending;
     }
 }
