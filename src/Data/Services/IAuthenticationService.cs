@@ -7,6 +7,8 @@ namespace bestvinnytsa.web.Data.Services
     {
         Task<string> RegisterPersonAsync(PersonRegisterRequest request);
         Task<string> RegisterCompanyAsync(CompanyRegisterRequest request);
-        Task<string> LoginAsync(LoginRequest request);
+
+        
+        Task<AuthResponse> LoginAsync(LoginRequest request);
     }
 }

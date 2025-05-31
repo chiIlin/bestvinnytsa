@@ -51,10 +51,10 @@ namespace bestvinnytsa.web.Data.Services
 
                 FullName = request.FullName.Trim(),
                 PhoneNumber = request.PhoneNumber.Trim(),
-                City = request.City.Trim(),
-                Biography = request.Biography.Trim(),
-                ContentCategories = request.ContentCategories.Trim(),
-                InstagramHandle = request.InstagramHandle.Trim(),
+                City = request.City?.Trim(),
+                Biography = request.Biography?.Trim(),
+                ContentCategories = request.ContentCategories?.Trim(),
+                InstagramHandle = request.InstagramHandle?.Trim(),
                 YoutubeHandle = request.YoutubeHandle?.Trim(),
                 TiktokHandle = request.TiktokHandle?.Trim(),
                 TelegramHandle = request.TelegramHandle?.Trim()
@@ -103,17 +103,17 @@ namespace bestvinnytsa.web.Data.Services
                 IsEmailConfirmed = true,
                 Roles = new List<string> { "Company" },
 
-                FullName = request.CompanyName.Trim(), // щоб у токені зберігати хоча б назву
+                FullName = request.CompanyName.Trim(),
                 CompanyName = request.CompanyName.Trim(),
                 ContactPerson = request.ContactPerson.Trim(),
                 CompanyPhone = request.CompanyPhone.Trim(),
                 Website = request.Website?.Trim(),
-                Industry = request.Industry.Trim(),
-                CompanySize = request.CompanySize.Trim(),
-                CompanyDescription = request.CompanyDescription.Trim(),
-                CollaborationGoals = request.CollaborationGoals.Trim(),
-                BudgetRange = request.BudgetRange.Trim(),
-                TargetAudience = request.TargetAudience.Trim()
+                Industry = request.Industry?.Trim(),
+                CompanySize = request.CompanySize?.Trim(),
+                CompanyDescription = request.CompanyDescription?.Trim(),
+                CollaborationGoals = request.CollaborationGoals?.Trim(),
+                BudgetRange = request.BudgetRange?.Trim(),
+                TargetAudience = request.TargetAudience?.Trim()
             };
 
             // 4. Вставка в MongoDB
@@ -138,19 +138,37 @@ namespace bestvinnytsa.web.Data.Services
             return GenerateJwtToken(newUser);
         }
 
-        public async Task<string> LoginAsync(LoginRequest request)
+        // Тепер LoginAsync повертає AuthResponse замість просто рядка
+        public async Task<AuthResponse> LoginAsync(LoginRequest request)
         {
+            // 1) Знаходимо користувача за Email (lowercase)
             var user = await _users
                 .Find(u => u.Email == request.Email.Trim().ToLower())
                 .FirstOrDefaultAsync();
             if (user == null)
                 throw new Exception("Невірний Email або пароль.");
 
+            // 2) Перевіряємо пароль через BCrypt
             bool verified = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
             if (!verified)
                 throw new Exception("Невірний Email або пароль.");
 
-            return GenerateJwtToken(user);
+            // 3) Генеруємо токен
+            string token = GenerateJwtToken(user);
+
+            // 4) Визначаємо роль: беремо першу роль із user.Roles
+            string role = user.Roles.Count > 0
+                ? user.Roles[0].ToLower()   
+                : string.Empty;
+
+
+            if (role == "person") role = "influencer";
+
+            return new AuthResponse
+            {
+                Token = token,
+                Role = role
+            };
         }
 
         private string GenerateJwtToken(AppUser user)
