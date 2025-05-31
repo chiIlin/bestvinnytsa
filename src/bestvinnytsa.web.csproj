@@ -4,7 +4,9 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>bestvinnytsa.web</RootNamespace>
+	<GenerateDocumentationFile>true</GenerateDocumentationFile>
+	  <NoWarn>$(NoWarn);1591</NoWarn>
+	<RootNamespace>bestvinnytsa.web</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,6 +21,7 @@
 
     <!-- Для роботи з контролерами Web API -->
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
 
 </Project>
