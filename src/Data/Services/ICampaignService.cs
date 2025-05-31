@@ -8,10 +8,10 @@ namespace bestvinnytsa.web.Data.Services
     {
         Task<List<Campaign>> GetOpenCampaignsAsync();
         Task<Campaign?> GetByIdAsync(int id);
+        Task<List<Campaign>> GetByProducerAsync(string producerId);
+        Task<List<Category>> GetCategoriesAsync();
         Task CreateAsync(Campaign newCampaign);
-        Task UpdateAsync(Campaign campaign);
-        Task CloseAsync(int id);
-        Task<List<Campaign>> GetByProducerAsync(int producerId);
-        Task<List<Category>> GetAllCategoriesAsync();
+        Task UpdateAsync(Campaign updatedCampaign);
+        Task CloseAsync(int campaignId);
     }
 }

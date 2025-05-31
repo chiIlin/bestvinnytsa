@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Security.Claims;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
 using bestvinnytsa.web.Data.Models;
 using bestvinnytsa.web.Data.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace bestvinnytsa.web.Controllers
 {
@@ -18,65 +18,52 @@ namespace bestvinnytsa.web.Controllers
             _applicationService = applicationService;
         }
 
+        [Authorize]
         [HttpGet("campaign/{campaignId:int}")]
-        public async Task<ActionResult<List<Application>>> GetByCampaign(int campaignId)
+        public async Task<IActionResult> GetByCampaign(int campaignId)
         {
-            var list = await _applicationService.GetByCampaignAsync(campaignId);
-            return Ok(list);
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var applications = await _applicationService.GetByCampaignAsync(campaignId);
+            return Ok(applications);
         }
 
-        [HttpGet("influencer/{influencerId:int}")]
-        public async Task<ActionResult<List<Application>>> GetByInfluencer(int influencerId)
+        [Authorize]
+        [HttpGet("influencer/my")]
+        public async Task<IActionResult> GetByInfluencer()
         {
-            var list = await _applicationService.GetByInfluencerAsync(influencerId);
-            return Ok(list);
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var applications = await _applicationService.GetByInfluencerAsync(userId);
+            return Ok(applications);
         }
 
+        [Authorize]
         [HttpPost]
-        public async Task<ActionResult> Apply([FromBody] Application newApplication)
+        public async Task<IActionResult> Create([FromBody] Application newApplication)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
 
-            newApplication.CreatedAt = DateTime.UtcNow;
-            newApplication.Status = ApplicationStatus.Pending;
+            newApplication.InfluencerId = userId;
             await _applicationService.ApplyAsync(newApplication);
-            return CreatedAtAction(
-                nameof(GetById), 
-                new { id = newApplication.Id }, 
-                newApplication);
+            return CreatedAtAction(nameof(GetByCampaign), new { campaignId = newApplication.CampaignId }, newApplication);
         }
 
-        [HttpGet("{id:int}")]
-        public async Task<ActionResult<Application>> GetById(int id)
-        {
-            var all = await _applicationService.GetByCampaignAsync(0);
-            var app = all.Find(a => a.Id == id);
-            if (app == null)
-                return NotFound();
-            return Ok(app);
-        }
-
+        [Authorize]
         [HttpPatch("{id:int}/status")]
-        public async Task<ActionResult> UpdateStatus(int id, [FromQuery] ApplicationStatus status)
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] ApplicationStatus status)
         {
-            var all = await _applicationService.GetByCampaignAsync(0);
-            var existing = all.Find(a => a.Id == id);
-            if (existing == null)
-                return NotFound();
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
 
             await _applicationService.UpdateStatusAsync(id, status);
-            return NoContent();
-        }
-
-        [HttpDelete("{id:int}")]
-        public async Task<ActionResult> Delete(int id)
-        {
-            var all = await _applicationService.GetByCampaignAsync(0);
-            var existing = all.Find(a => a.Id == id);
-            if (existing == null)
-                return NotFound();
-
             return NoContent();
         }
     }

@@ -1,9 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using bestvinnytsa.web.Data.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace bestvinnytsa.web.Data.Services
 {
@@ -15,20 +14,32 @@ namespace bestvinnytsa.web.Data.Services
         public async Task<List<Campaign>> GetOpenCampaignsAsync()
         {
             return await _db.Campaigns
-                .Include(c => c.Producer)
+                .Where(c => c.IsOpen)
                 .Include(c => c.Category)
-                .Where(c => c.IsOpen && (c.ExpiresAt == null || c.ExpiresAt > DateTime.UtcNow))
-                .OrderByDescending(c => c.CreatedAt)
+                .Include(c => c.Producer)
                 .ToListAsync();
         }
 
         public async Task<Campaign?> GetByIdAsync(int id)
         {
             return await _db.Campaigns
-                .Include(c => c.Producer)
                 .Include(c => c.Category)
-                .Include(c => c.Applications)
+                .Include(c => c.Producer)
                 .FirstOrDefaultAsync(c => c.Id == id);
+        }
+
+        public async Task<List<Campaign>> GetByProducerAsync(string producerId)
+        {
+            return await _db.Campaigns
+                .Where(c => c.ProducerId == producerId)
+                .Include(c => c.Category)
+                .Include(c => c.Producer)
+                .ToListAsync();
+        }
+
+        public async Task<List<Category>> GetCategoriesAsync()
+        {
+            return await _db.Categories.ToListAsync();
         }
 
         public async Task CreateAsync(Campaign newCampaign)
@@ -37,39 +48,20 @@ namespace bestvinnytsa.web.Data.Services
             await _db.SaveChangesAsync();
         }
 
-        public async Task UpdateAsync(Campaign campaign)
+        public async Task UpdateAsync(Campaign updatedCampaign)
         {
-            _db.Campaigns.Update(campaign);
+            _db.Campaigns.Update(updatedCampaign);
             await _db.SaveChangesAsync();
         }
 
-        public async Task CloseAsync(int id)
+        public async Task CloseAsync(int campaignId)
         {
-            var campaign = await _db.Campaigns.FindAsync(id);
+            var campaign = await _db.Campaigns.FindAsync(campaignId);
             if (campaign != null)
             {
                 campaign.IsOpen = false;
                 await _db.SaveChangesAsync();
             }
-        }
-
-        // Тепер підпис відповідає інтерфейсу ICampaignService.GetByProducerAsync(int)
-        public async Task<List<Campaign>> GetByProducerAsync(int producerId)
-        {
-            // ProducerId у моделі — string, тому приводимо int до рядка
-            string pid = producerId.ToString();
-            return await _db.Campaigns
-                .Include(c => c.Category)
-                .Where(c => c.ProducerId == pid)
-                .OrderByDescending(c => c.CreatedAt)
-                .ToListAsync();
-        }
-
-        public async Task<List<Category>> GetAllCategoriesAsync()
-        {
-            return await _db.Categories
-                .OrderBy(c => c.Name)
-                .ToListAsync();
         }
     }
 }

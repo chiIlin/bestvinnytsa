@@ -1,9 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
 using bestvinnytsa.web.Data.Models;
 using bestvinnytsa.web.Data.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace bestvinnytsa.web.Controllers
 {
@@ -18,98 +19,128 @@ namespace bestvinnytsa.web.Controllers
             _campaignService = campaignService;
         }
 
- 
+     
         [HttpGet("open")]
-        public async Task<ActionResult<List<Campaign>>> GetOpen()
+        public async Task<IActionResult> GetOpen()
         {
-            var list = await _campaignService.GetOpenCampaignsAsync();
-            return Ok(list);
+            var campaigns = await _campaignService.GetOpenCampaignsAsync();
+            return Ok(campaigns);
         }
 
- 
+        
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<Campaign>> GetById(int id)
+        public async Task<IActionResult> GetById(int id)
         {
             var campaign = await _campaignService.GetByIdAsync(id);
             if (campaign == null)
-                return NotFound();
+                return NotFound(new { Message = $"Кампанію з Id = {id} не знайдено." });
+
             return Ok(campaign);
         }
 
-  
-        [HttpGet("producer/{producerId:int}")]
-        public async Task<ActionResult<List<Campaign>>> GetByProducer(int producerId)
+        
+        [Authorize]
+        [HttpGet("my")]
+        public async Task<IActionResult> GetByProducer()
         {
-            var list = await _campaignService.GetByProducerAsync(producerId);
-            return Ok(list);
+        
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var campaigns = await _campaignService.GetByProducerAsync(userId);
+            return Ok(campaigns);
         }
 
-)
-        [HttpGet("categories")]
-        public async Task<ActionResult<List<Category>>> GetCategories()
-        {
-            var list = await _campaignService.GetAllCategoriesAsync();
-            return Ok(list);
-        }
-
-
+       
+        [Authorize]
         [HttpPost]
-        public async Task<ActionResult> Create([FromBody] Campaign newCampaign)
+        public async Task<IActionResult> Create([FromBody] Campaign newCampaign)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+           
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
 
-            newCampaign.CreatedAt = DateTime.UtcNow;
- 
+          
+            newCampaign.ProducerId = userId;
+
             await _campaignService.CreateAsync(newCampaign);
-  
             return CreatedAtAction(nameof(GetById), new { id = newCampaign.Id }, newCampaign);
         }
 
-
+        
+        [Authorize]
         [HttpPut("{id:int}")]
-        public async Task<ActionResult> Update(int id, [FromBody] Campaign updateCampaign)
+        public async Task<IActionResult> Update(int id, [FromBody] Campaign updatedCampaign)
         {
-            if (id != updateCampaign.Id)
-                return BadRequest("ID не співпадає.");
+       
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
 
+           
             var existing = await _campaignService.GetByIdAsync(id);
             if (existing == null)
-                return NotFound();
+                return NotFound(new { Message = $"Кампанію з Id = {id} не знайдено." });
 
+           
+            if (existing.ProducerId != userId)
+                return Forbid();
 
-            existing.Name = updateCampaign.Name;
-            existing.Budget = updateCampaign.Budget;
-            existing.Description = updateCampaign.Description;
-            existing.Link = updateCampaign.Link;
-            existing.CategoryId = updateCampaign.CategoryId;
- 
+        
+            existing.Name        = updatedCampaign.Name;
+            existing.Budget      = updatedCampaign.Budget;
+            existing.Description = updatedCampaign.Description;
+            existing.Link        = updatedCampaign.Link;
+            existing.CategoryId  = updatedCampaign.CategoryId;
+            existing.IsOpen      = updatedCampaign.IsOpen;
+            existing.ExpiresAt   = updatedCampaign.ExpiresAt;
 
             await _campaignService.UpdateAsync(existing);
             return NoContent();
         }
 
-
+        
+        [Authorize]
         [HttpPatch("{id:int}/close")]
-        public async Task<ActionResult> Close(int id)
+        public async Task<IActionResult> Close(int id)
         {
+          
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
             var existing = await _campaignService.GetByIdAsync(id);
             if (existing == null)
-                return NotFound();
+                return NotFound(new { Message = $"Кампанію з Id = {id} не знайдено." });
+
+            if (existing.ProducerId != userId)
+                return Forbid();
 
             await _campaignService.CloseAsync(id);
             return NoContent();
         }
 
-
+     
+        [Authorize]
         [HttpDelete("{id:int}")]
-        public async Task<ActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
+            
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
             var existing = await _campaignService.GetByIdAsync(id);
             if (existing == null)
-                return NotFound();
+                return NotFound(new { Message = $"Кампанію з Id = {id} не знайдено." });
 
-            await _campaignService.CloseAsync(id);
+            if (existing.ProducerId != userId)
+                return Forbid();
+
+           
+            await _campaignService.UpdateAsync(existing); 
             return NoContent();
         }
     }

@@ -7,8 +7,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
-
-
 var builder = WebApplication.CreateBuilder(args);
 
 
@@ -38,6 +36,7 @@ var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey   = jwtSettings.GetValue<string>("SecretKey");
 var issuer      = jwtSettings.GetValue<string>("Issuer");
 var audience    = jwtSettings.GetValue<string>("Audience");
+
 
 builder.Services.AddAuthentication(options =>
     {
@@ -92,7 +91,6 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     dbContext.Database.Migrate();
-
 
     await DbSeeder.SeedRolesAndCategoriesAsync(app.Services);
 }

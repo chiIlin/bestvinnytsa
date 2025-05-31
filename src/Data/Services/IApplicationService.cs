@@ -7,7 +7,7 @@ namespace bestvinnytsa.web.Data.Services
     public interface IApplicationService
     {
         Task<List<Application>> GetByCampaignAsync(int campaignId);
-        Task<List<Application>> GetByInfluencerAsync(int influencerId);
+        Task<List<Application>> GetByInfluencerAsync(string influencerId);
         Task ApplyAsync(Application newApplication);
         Task UpdateStatusAsync(int applicationId, ApplicationStatus status);
     }
