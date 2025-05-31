@@ -76,10 +76,12 @@ namespace bestvinnytsa.web.Controllers
 
             try
             {
-                var token = await _authService.LoginAsync(request);
+                var authResponse = await _authService.LoginAsync(request);
+                Console.WriteLine($"Token: {authResponse.Token}, Role: {authResponse.Role}");
                 return Ok(new
                 {
-                    Token = token
+                    Token = authResponse.Token,
+                    Role = authResponse.Role
                 });
             }
             catch (Exception ex)

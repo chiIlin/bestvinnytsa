@@ -158,11 +158,13 @@ namespace bestvinnytsa.web.Data.Services
 
             // 4) Визначаємо роль: беремо першу роль із user.Roles
             string role = user.Roles.Count > 0
-                ? user.Roles[0].ToLower()   
+                ? user.Roles[0].Trim().ToLower()
                 : string.Empty;
 
 
             if (role == "person") role = "influencer";
+            if (role == "company") role = "company";
+            // Якщо роль якась інша, можна кинути помилку або задати дефолтне значення
 
             return new AuthResponse
             {
