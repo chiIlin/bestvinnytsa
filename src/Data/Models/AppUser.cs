@@ -4,44 +4,106 @@ using System.Collections.Generic;
 
 namespace bestvinnytsa.web.Data.Models
 {
-    /// <summary>
-    /// Сутність користувача для збереження в MongoDB.
-    /// Id => ObjectId, але в C# працюємо як зі string.
-    /// </summary>
     public class AppUser
     {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
         public string Id { get; set; } = null!;
 
-        [BsonElement("username")]
+        [BsonElement("userName")]
         public string UserName { get; set; } = null!;
 
         [BsonElement("email")]
         public string Email { get; set; } = null!;
 
-        [BsonElement("fullName")]
-        public string FullName { get; set; } = null!;
-
-        /// <summary>
-        /// Зберігаємо хеш пароля (BCrypt).
-        /// </summary>
         [BsonElement("passwordHash")]
         public string PasswordHash { get; set; } = null!;
 
         [BsonElement("isEmailConfirmed")]
         public bool IsEmailConfirmed { get; set; }
 
-        /// <summary>
-        /// Список назв ролей (наприклад, ["Producer"] або ["Influencer"]).
-        /// </summary>
         [BsonElement("roles")]
-        public List<string> Roles { get; set; } = new();
+        public List<string> Roles { get; set; } = new List<string>();
 
-        [BsonIgnore]
-        public List<Campaign> Campaigns { get; set; } = new();
+        [BsonElement("fullName")]
+        [BsonIgnoreIfNull]
+        public string? FullName { get; set; }
 
-        [BsonIgnore]
-        public List<Application> Applications { get; set; } = new();
+        // ======= Поля для фізичної особи =======
+
+        [BsonElement("phoneNumber")]
+        [BsonIgnoreIfNull]
+        public string? PhoneNumber { get; set; }
+
+        [BsonElement("city")]
+        [BsonIgnoreIfNull]
+        public string? City { get; set; }
+
+        [BsonElement("biography")]
+        [BsonIgnoreIfNull]
+        public string? Biography { get; set; }
+
+        [BsonElement("contentCategories")]
+        [BsonIgnoreIfNull]
+        public string? ContentCategories { get; set; }
+
+        [BsonElement("instagramHandle")]
+        [BsonIgnoreIfNull]
+        public string? InstagramHandle { get; set; }
+
+        [BsonElement("youtubeHandle")]
+        [BsonIgnoreIfNull]
+        public string? YoutubeHandle { get; set; }
+
+        [BsonElement("tiktokHandle")]
+        [BsonIgnoreIfNull]
+        public string? TiktokHandle { get; set; }
+
+        [BsonElement("telegramHandle")]
+        [BsonIgnoreIfNull]
+        public string? TelegramHandle { get; set; }
+
+
+        // ======= Поля для компанії =======
+
+        [BsonElement("companyName")]
+        [BsonIgnoreIfNull]
+        public string? CompanyName { get; set; }
+
+        [BsonElement("contactPerson")]
+        [BsonIgnoreIfNull]
+        public string? ContactPerson { get; set; }
+
+        [BsonElement("companyPhone")]
+        [BsonIgnoreIfNull]
+        public string? CompanyPhone { get; set; }
+
+        [BsonElement("website")]
+        [BsonIgnoreIfNull]
+        public string? Website { get; set; }
+
+        [BsonElement("industry")]
+        [BsonIgnoreIfNull]
+        public string? Industry { get; set; }
+
+        [BsonElement("companySize")]
+        [BsonIgnoreIfNull]
+        public string? CompanySize { get; set; }
+
+        [BsonElement("companyDescription")]
+        [BsonIgnoreIfNull]
+        public string? CompanyDescription { get; set; }
+
+        [BsonElement("collaborationGoals")]
+        [BsonIgnoreIfNull]
+        public string? CollaborationGoals { get; set; }
+
+        [BsonElement("budgetRange")]
+        [BsonIgnoreIfNull]
+        public string? BudgetRange { get; set; }
+
+        [BsonElement("targetAudience")]
+        [BsonIgnoreIfNull]
+        public string? TargetAudience { get; set; }
     }
 }
