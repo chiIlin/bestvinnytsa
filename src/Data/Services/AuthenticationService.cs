@@ -13,12 +13,6 @@ using System.Text;
 
 namespace bestvinnytsa.web.Data.Services
 {
-    /// <summary>
-    /// Реалізація аутентифікації через MongoDB:
-    /// - Використовує BCrypt.Net-Next для хешування паролів.
-    /// - Зберігає AppUser у колекцію "Users" та AppRole у колекцію "Roles".
-    /// - Генерує JWT на основі налаштувань JwtSettings.
-    /// </summary>
     public class AuthenticationService : IAuthenticationService
     {
         private readonly IMongoCollection<AppUser> _users;
@@ -34,79 +28,131 @@ namespace bestvinnytsa.web.Data.Services
             _jwtSettings = jwtOptions.Value;
         }
 
-        public async Task<string> RegisterAsync(RegisterRequest request)
+        public async Task<string> RegisterPersonAsync(PersonRegisterRequest request)
         {
-            // 1) Перевіряємо, чи користувач із таким email уже існує
+            // 1. Перевіряємо дублікати за Email
             var existingUser = await _users
-                .Find(u => u.Email == request.Email)
+                .Find(u => u.Email == request.Email.Trim().ToLower())
                 .FirstOrDefaultAsync();
-
             if (existingUser != null)
                 throw new Exception("Користувач із таким Email уже існує.");
 
-            // 2) Хешуємо пароль
+            // 2. Хешуємо пароль
             string passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-            // 3) Формуємо новий обʼєкт AppUser
+            // 3. Формуємо AppUser
             var newUser = new AppUser
             {
-                UserName = request.Email,
-                Email = request.Email,
-                FullName = request.FullName,
+                UserName = request.Email.Trim().ToLower(),
+                Email = request.Email.Trim().ToLower(),
                 PasswordHash = passwordHash,
                 IsEmailConfirmed = true,
-                Roles = new List<string> { request.Role }
+                Roles = new List<string> { "Person" },
+
+                FullName = request.FullName.Trim(),
+                PhoneNumber = request.PhoneNumber.Trim(),
+                City = request.City.Trim(),
+                Biography = request.Biography.Trim(),
+                ContentCategories = request.ContentCategories.Trim(),
+                InstagramHandle = request.InstagramHandle.Trim(),
+                YoutubeHandle = request.YoutubeHandle?.Trim(),
+                TiktokHandle = request.TiktokHandle?.Trim(),
+                TelegramHandle = request.TelegramHandle?.Trim()
             };
 
-            // 4) Вставляємо користувача в колекцію Users
+            // 4. Вставляємо в MongoDB
             await _users.InsertOneAsync(newUser);
 
-            // 5) Перевіряємо, чи існує відповідна AppRole в колекції Roles
-            var normalizedRole = request.Role.ToUpperInvariant();
+            // 5. Перевіряємо / створюємо AppRole
+            var normalizedRole = "PERSON";
             var existingRole = await _roles
                 .Find(r => r.NormalizedName == normalizedRole)
                 .FirstOrDefaultAsync();
-
             if (existingRole == null)
             {
                 var newRole = new AppRole
                 {
-                    Name = request.Role,
+                    Name = "Person",
                     NormalizedName = normalizedRole
                 };
                 await _roles.InsertOneAsync(newRole);
             }
 
-            // 6) Генеруємо JWT і повертаємо
+            // 6. Повертаємо JWT
+            return GenerateJwtToken(newUser);
+        }
+
+        public async Task<string> RegisterCompanyAsync(CompanyRegisterRequest request)
+        {
+            // 1. Перевіряємо дублікати за Email
+            var existingUser = await _users
+                .Find(u => u.Email == request.Email.Trim().ToLower())
+                .FirstOrDefaultAsync();
+            if (existingUser != null)
+                throw new Exception("Користувач із таким Email уже існує.");
+
+            // 2. Хешуємо пароль
+            string passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+
+            // 3. Формуємо AppUser
+            var newUser = new AppUser
+            {
+                UserName = request.Email.Trim().ToLower(),
+                Email = request.Email.Trim().ToLower(),
+                PasswordHash = passwordHash,
+                IsEmailConfirmed = true,
+                Roles = new List<string> { "Company" },
+
+                FullName = request.CompanyName.Trim(), // щоб у токені зберігати хоча б назву
+                CompanyName = request.CompanyName.Trim(),
+                ContactPerson = request.ContactPerson.Trim(),
+                CompanyPhone = request.CompanyPhone.Trim(),
+                Website = request.Website?.Trim(),
+                Industry = request.Industry.Trim(),
+                CompanySize = request.CompanySize.Trim(),
+                CompanyDescription = request.CompanyDescription.Trim(),
+                CollaborationGoals = request.CollaborationGoals.Trim(),
+                BudgetRange = request.BudgetRange.Trim(),
+                TargetAudience = request.TargetAudience.Trim()
+            };
+
+            // 4. Вставка в MongoDB
+            await _users.InsertOneAsync(newUser);
+
+            // 5. Перевірка/створення ролі
+            var normalizedRole = "COMPANY";
+            var existingRole = await _roles
+                .Find(r => r.NormalizedName == normalizedRole)
+                .FirstOrDefaultAsync();
+            if (existingRole == null)
+            {
+                var newRole = new AppRole
+                {
+                    Name = "Company",
+                    NormalizedName = normalizedRole
+                };
+                await _roles.InsertOneAsync(newRole);
+            }
+
+            // 6. Повертаємо JWT
             return GenerateJwtToken(newUser);
         }
 
         public async Task<string> LoginAsync(LoginRequest request)
         {
-            // 1) Шукаємо користувача за email
             var user = await _users
-                .Find(u => u.Email == request.Email)
+                .Find(u => u.Email == request.Email.Trim().ToLower())
                 .FirstOrDefaultAsync();
-
             if (user == null)
                 throw new Exception("Невірний Email або пароль.");
 
-            // 2) Перевіряємо пароль через BCrypt
             bool verified = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
             if (!verified)
                 throw new Exception("Невірний Email або пароль.");
 
-            // 3) Генеруємо JWT і повертаємо
             return GenerateJwtToken(user);
         }
 
-        /// <summary>
-        /// Створює JWT-токен з Claim:
-        /// - ClaimTypes.NameIdentifier = user.Id
-        /// - ClaimTypes.Email = user.Email
-        /// - ClaimTypes.Role = кожна роль із user.Roles
-        /// - Claim "FullName" = user.FullName
-        /// </summary>
         private string GenerateJwtToken(AppUser user)
         {
             var claims = new List<Claim>
@@ -114,20 +160,17 @@ namespace bestvinnytsa.web.Data.Services
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim("FullName", user.FullName ?? "")
+                new Claim("FullName", user.FullName ?? string.Empty)
             };
 
-            // Додаємо ролі
             foreach (var role in user.Roles)
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            // Формуємо ключ і підписи
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            // Створюємо і повертаємо JWT
             var token = new JwtSecurityToken(
                 issuer: _jwtSettings.Issuer,
                 audience: _jwtSettings.Audience,

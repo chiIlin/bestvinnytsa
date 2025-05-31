@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using bestvinnytsa.web.Data.DTOs;
 using bestvinnytsa.web.Data.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -16,30 +17,40 @@ namespace bestvinnytsa.web.Controllers
             _authService = authService;
         }
 
-        /// <summary>
-        /// Реєстрація нового користувача (Producer або Influencer). 
-        /// Повертає JWT-токен.
-        /// </summary>
-        [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        [HttpPost("register_person")]
+        public async Task<IActionResult> RegisterPerson([FromBody] PersonRegisterRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                var token = await _authService.RegisterAsync(request);
+                var token = await _authService.RegisterPersonAsync(request);
                 return Ok(new { Token = token });
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 return BadRequest(new { Message = ex.Message });
             }
         }
 
-        /// <summary>
-        /// Вхід користувача. Повертає JWT-токен.
-        /// </summary>
+        [HttpPost("register_company")]
+        public async Task<IActionResult> RegisterCompany([FromBody] CompanyRegisterRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var token = await _authService.RegisterCompanyAsync(request);
+                return Ok(new { Token = token });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+        }
+
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
@@ -51,7 +62,7 @@ namespace bestvinnytsa.web.Controllers
                 var token = await _authService.LoginAsync(request);
                 return Ok(new { Token = token });
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 return Unauthorized(new { Message = ex.Message });
             }
