@@ -17,6 +17,7 @@ namespace bestvinnytsa.web.Controllers
             _authService = authService;
         }
 
+      
         [HttpPost("register_person")]
         public async Task<IActionResult> RegisterPerson([FromBody] PersonRegisterRequest request)
         {
@@ -25,8 +26,15 @@ namespace bestvinnytsa.web.Controllers
 
             try
             {
+                
                 var token = await _authService.RegisterPersonAsync(request);
-                return Ok(new { Token = token });
+
+              
+                return Ok(new
+                {
+                    Token = token,
+                    Role = "influencer"
+                });
             }
             catch (Exception ex)
             {
@@ -34,6 +42,7 @@ namespace bestvinnytsa.web.Controllers
             }
         }
 
+       
         [HttpPost("register_company")]
         public async Task<IActionResult> RegisterCompany([FromBody] CompanyRegisterRequest request)
         {
@@ -42,8 +51,15 @@ namespace bestvinnytsa.web.Controllers
 
             try
             {
+                
                 var token = await _authService.RegisterCompanyAsync(request);
-                return Ok(new { Token = token });
+
+             
+                return Ok(new
+                {
+                    Token = token,
+                    Role = "company"
+                });
             }
             catch (Exception ex)
             {
@@ -51,6 +67,7 @@ namespace bestvinnytsa.web.Controllers
             }
         }
 
+        
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
@@ -60,7 +77,10 @@ namespace bestvinnytsa.web.Controllers
             try
             {
                 var token = await _authService.LoginAsync(request);
-                return Ok(new { Token = token });
+                return Ok(new
+                {
+                    Token = token
+                });
             }
             catch (Exception ex)
             {
