@@ -33,6 +33,12 @@ namespace bestvinnytsa.web.Controllers
 
             var chats = await _messageService.GetChatsForUserAsync(userId);
 
+            // Додай це для дебагу:
+            Console.WriteLine($"userId: {userId}");
+            Console.WriteLine($"Chats found: {chats.Count}");
+            foreach (var chat in chats)
+                Console.WriteLine($"Chat: {chat.Id}, Participants: {string.Join(",", chat.Participants)}");
+
             // Додаємо ім'я та аватар співрозмовника
             var usersCollection = _mongoContext.Users;
             var chatDtos = new List<object>();
@@ -88,22 +94,49 @@ namespace bestvinnytsa.web.Controllers
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
-            // Перевіряємо, чи вже існує чат
-            var existing = await _messageService.GetChatsForUserAsync(userId);
-            var chat = existing.FirstOrDefault(c => c.Participants.Contains(request.ParticipantId));
-            if (chat != null)
-                return Ok(chat);
-
-            // Створюємо новий чат
-            var newChat = new Chat
+            // Перевіряємо, чи вже існує чат між цими двома користувачами
+            var chat = await _mongoContext.Chats
+                .Find(c => c.Participants.Count == 2 &&
+                           c.Participants.Contains(userId) &&
+                           c.Participants.Contains(request.ParticipantId))
+                .FirstOrDefaultAsync();
+            if (chat == null)
             {
-                Participants = new List<string> { userId, request.ParticipantId },
-                LastMessage = "",
-                LastMessageTime = null,
-                UnreadCount = new Dictionary<string, int>()
+                // Створюємо новий чат
+                chat = new Chat
+                {
+                    Participants = new List<string> { userId, request.ParticipantId },
+                    LastMessage = "",
+                    LastMessageTime = null,
+                    UnreadCount = new Dictionary<string, int>()
+                };
+                await _mongoContext.Chats.InsertOneAsync(chat);
+            }
+
+            // Додаємо ім'я та аватар співрозмовника (як у GetChats)
+            var otherId = chat.Participants.FirstOrDefault(id => id != userId);
+            var usersCollection = _mongoContext.Users;
+            var otherUser = otherId != null
+                ? await usersCollection.Find(u => u.Id == otherId).FirstOrDefaultAsync()
+                : null;
+
+            var chatDto = new
+            {
+                id = chat.Id,
+                participants = chat.Participants,
+                lastMessage = chat.LastMessage,
+                lastMessageTime = chat.LastMessageTime,
+                unreadCount = chat.UnreadCount.ContainsKey(userId) ? chat.UnreadCount[userId] : 0,
+                participantName = otherUser?.FullName ?? otherUser?.CompanyName ?? "Співрозмовник",
+                participantAvatar = otherUser?.PhotoUrl ?? "",
+                participantType = otherUser?.Roles.Contains("Company") == true ? "brand" : "influencer",
+                isOnline = false
             };
-            await _mongoContext.Chats.InsertOneAsync(newChat);
-            return Ok(newChat);
+
+            Console.WriteLine($"Створюємо чат для: {userId} і {request.ParticipantId}");
+            Console.WriteLine($"Чат створено з id: {chat.Id}");
+
+            return Ok(chatDto);
         }
     }
 
