@@ -161,7 +161,7 @@ namespace bestvinnytsa.web.Data.Services
             // 3) Генеруємо токен
             string token = GenerateJwtToken(user);
 
-            // 4) ВИПРАВЛЯЄМО: правильне визначення ролі
+            // 4) ОНОВЛЮЄМО: правильне визначення ролі з підтримкою Admin
             string role = user.Roles.Count > 0
                 ? user.Roles[0].Trim().ToLower()
                 : string.Empty;
@@ -169,6 +169,7 @@ namespace bestvinnytsa.web.Data.Services
             // ЗМІНЮЄМО логіку конвертації ролей
             if (role == "person") role = "influencer";
             else if (role == "company") role = "company";
+            else if (role == "admin") role = "admin"; // ДОДАЛИ підтримку admin
             else
             {
                 // Якщо роль невідома, кидаємо помилку

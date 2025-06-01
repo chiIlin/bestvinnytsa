@@ -9,7 +9,7 @@ namespace bestvinnytsa.web.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize] // Поки що просто авторизовані користувачі, пізніше можна додати роль Admin
+    [Authorize] // Загальна авторизація
     public class AdminController : ControllerBase
     {
         private readonly MongoContext _mongoContext;
@@ -19,12 +19,31 @@ namespace bestvinnytsa.web.Controllers
             _mongoContext = mongoContext;
         }
 
+        // ДОДАЄМО метод для перевірки ролі адміна
+        private async Task<bool> IsAdminAsync()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return false;
+
+            var user = await _mongoContext.Users
+                .Find(u => u.Id == userId)
+                .FirstOrDefaultAsync();
+
+            return user?.Roles.Contains("Admin") == true;
+        }
+
         /// <summary>
         /// Отримати статистику платформи
         /// </summary>
         [HttpGet("stats")]
         public async Task<IActionResult> GetStats()
         {
+            // Перевіряємо чи користувач адмін
+            if (!await IsAdminAsync())
+            {
+                return StatusCode(403, new { message = "Доступ заборонено. Тільки для адміністраторів." });
+            }
+
             try
             {
                 // Загальна кількість користувачів
@@ -75,10 +94,21 @@ namespace bestvinnytsa.web.Controllers
         [HttpGet("users")]
         public async Task<IActionResult> GetUsers([FromQuery] int page = 1, [FromQuery] int limit = 10, [FromQuery] string? search = null, [FromQuery] string? role = null)
         {
+            // Перевіряємо чи користувач адмін
+            if (!await IsAdminAsync())
+            {
+                return StatusCode(403, new { message = "Доступ заборонено. Тільки для адміністраторів." });
+            }
+
             try
             {
                 var skip = (page - 1) * limit;
                 var filter = Builders<AppUser>.Filter.Empty;
+
+                // Виключаємо адмінів зі списку користувачів
+                filter = filter & Builders<AppUser>.Filter.Not(
+                    Builders<AppUser>.Filter.AnyEq(u => u.Roles, "Admin")
+                );
 
                 // Фільтр по ролі
                 if (!string.IsNullOrEmpty(role))
@@ -138,6 +168,12 @@ namespace bestvinnytsa.web.Controllers
         [HttpPut("users/{id}/block")]
         public async Task<IActionResult> ToggleUserBlock(string id, [FromBody] BlockUserRequest request)
         {
+            // Перевіряємо чи користувач адмін
+            if (!await IsAdminAsync())
+            {
+                return StatusCode(403, new { message = "Доступ заборонено. Тільки для адміністраторів." });
+            }
+
             try
             {
                 var filter = Builders<AppUser>.Filter.Eq(u => u.Id, id);
@@ -164,6 +200,12 @@ namespace bestvinnytsa.web.Controllers
         [HttpDelete("users/{id}")]
         public async Task<IActionResult> DeleteUser(string id)
         {
+            // Перевіряємо чи користувач адмін
+            if (!await IsAdminAsync())
+            {
+                return StatusCode(403, new { message = "Доступ заборонено. Тільки для адміністраторів." });
+            }
+
             try
             {
                 var result = await _mongoContext.Users.DeleteOneAsync(u => u.Id == id);
