@@ -5,18 +5,24 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  server: {
-    host: "::",
-    port: 8080,
-  },
-  plugins: [
-    react(),
-    mode === 'development' &&
-    componentTagger(),
-  ].filter(Boolean),
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+    server: {
+        host: "::",
+        port: 8080,
+        proxy: {
+            '/api': {
+                target: 'http://backend:5112', // Docker Compose backend service name + port
+                changeOrigin: true,
+                rewrite: path => path,
+            }
+        }
     },
-  },
+    plugins: [
+        react(),
+        mode === 'development' && componentTagger(),
+    ].filter(Boolean),
+    resolve: {
+        alias: {
+            "@": path.resolve(__dirname, "./src"),
+        },
+    },
 }));
