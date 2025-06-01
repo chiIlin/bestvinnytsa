@@ -1,0 +1,50 @@
+version: "3.8"
+services:
+  mongodb:
+    image: mongo:6
+    container_name: mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo
+      MONGO_INITDB_ROOT_PASSWORD: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bestvinnytsa-backend
+    restart: always
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      MongoDbSettings__ConnectionString: "mongodb://mongo:mongo@mongodb:27017"
+      MongoDbSettings__Database: "bestvinnytsa"
+    depends_on:
+      - mongodb
+    ports:
+      - "5112:5112"
+
+  frontend:
+    build:
+      context: ./frontend/inf-client
+      dockerfile: Dockerfile
+    container_name: bestvinnytsa-frontend
+    restart: always
+    environment:
+      VITE_API_URL: "http://localhost:5112"
+    depends_on:
+      - backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./frontend/inf-client:/app
+      - /app/node_modules
+    working_dir: /app
+
+
+
+volumes:
+  mongo-data:
