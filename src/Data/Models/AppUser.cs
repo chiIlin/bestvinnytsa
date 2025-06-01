@@ -62,6 +62,19 @@ namespace bestvinnytsa.web.Data.Models
         [BsonElement("telegramHandle")]
         [BsonIgnoreIfNull]
         public string? TelegramHandle { get; set; }
+
+        // НОВІ ПОЛЯ - кількість підписників
+        [BsonElement("instagramFollowers")]
+        public int? InstagramFollowers { get; set; }
+    
+        [BsonElement("youtubeFollowers")]
+        public int? YoutubeFollowers { get; set; }
+    
+        [BsonElement("tiktokFollowers")]
+        public int? TiktokFollowers { get; set; }
+    
+        [BsonElement("telegramFollowers")]
+        public int? TelegramFollowers { get; set; }
         
         [BsonElement("photoUrl")]
         [BsonIgnoreIfNull]

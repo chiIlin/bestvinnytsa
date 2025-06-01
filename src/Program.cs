@@ -131,18 +131,18 @@ app.UseHttpsRedirection();
 app.UseRouting();
 
 // **Додаємо роздачу статичних файлів із wwwroot/uploads**  
-// Щоб, наприклад, файл, збережений як wwwroot/uploads/{userId}.jpg,
-// був доступний за URL: https://вашдомен/uploads/{userId}.jpg
-
 app.UseStaticFiles(); // роздаватиме весь wwwroot
 
-// (За потреби, також можна включити directory browsing у wwwroot/uploads)
-// Але якщо достатньо просто подавати файли — цей блок не обов’язковий:
+// Перевіряємо чи існує папка uploads перед налаштуванням DirectoryBrowser
+var uploadsPath = Path.Combine(app.Environment.WebRootPath, "uploads");
+if (!Directory.Exists(uploadsPath))
+{
+    Directory.CreateDirectory(uploadsPath);
+}
+
 app.UseDirectoryBrowser(new DirectoryBrowserOptions
 {
-    FileProvider = new PhysicalFileProvider(
-        Path.Combine(app.Environment.WebRootPath, "uploads")
-    ),
+    FileProvider = new PhysicalFileProvider(uploadsPath),
     RequestPath = "/uploads"
 });
 

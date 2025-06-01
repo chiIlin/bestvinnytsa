@@ -26,6 +26,9 @@ namespace bestvinnytsa.web.Controllers
             _env = env;
         }
 
+        /// <summary>
+        /// Отримати профіль компанії
+        /// </summary>
         [Authorize]
         [HttpGet("company")]
         public async Task<IActionResult> GetCompanyProfile()
@@ -57,6 +60,9 @@ namespace bestvinnytsa.web.Controllers
             });
         }
 
+        /// <summary>
+        /// Оновити профіль компанії
+        /// </summary>
         [Authorize]
         [HttpPut("company")]
         public async Task<IActionResult> UpdateCompanyProfile([FromBody] UpdateCompanyProfileRequest request)
@@ -81,6 +87,9 @@ namespace bestvinnytsa.web.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Отримати профіль інфлюенсера
+        /// </summary>
         [Authorize]
         [HttpGet("influencer")]
         public async Task<IActionResult> GetInfluencerProfile()
@@ -98,20 +107,28 @@ namespace bestvinnytsa.web.Controllers
 
             return Ok(new
             {
-                fullName          = user.FullName,
-                email             = user.Email,
-                phoneNumber       = user.PhoneNumber,
-                city              = user.City,
-                biography         = user.Biography,
-                contentCategories = user.ContentCategories,
-                instagramHandle   = user.InstagramHandle,
-                youtubeHandle     = user.YoutubeHandle,
-                tiktokHandle      = user.TiktokHandle,
-                telegramHandle    = user.TelegramHandle,
-                photoUrl          = user.PhotoUrl
+                fullName            = user.FullName,
+                email               = user.Email,
+                phoneNumber         = user.PhoneNumber,
+                city                = user.City,
+                biography           = user.Biography,
+                contentCategories   = user.ContentCategories,
+                instagramHandle     = user.InstagramHandle,
+                youtubeHandle       = user.YoutubeHandle,
+                tiktokHandle        = user.TiktokHandle,
+                telegramHandle      = user.TelegramHandle,
+                // ДОДАЄМО нові поля для підписників
+                instagramFollowers  = user.InstagramFollowers,
+                youtubeFollowers    = user.YoutubeFollowers,
+                tiktokFollowers     = user.TiktokFollowers,
+                telegramFollowers   = user.TelegramFollowers,
+                photoUrl            = user.PhotoUrl
             });
         }
 
+        /// <summary>
+        /// Оновити профіль інфлюенсера
+        /// </summary>
         [Authorize]
         [HttpPut("influencer")]
         public async Task<IActionResult> UpdateInfluencerProfile([FromBody] UpdateInfluencerProfileRequest request)
@@ -122,15 +139,20 @@ namespace bestvinnytsa.web.Controllers
 
             var filter = Builders<AppUser>.Filter.Eq(u => u.Id, userId);
             var update = Builders<AppUser>.Update
-                .Set(u => u.FullName,         request.FullName?.Trim())
-                .Set(u => u.PhoneNumber,      request.PhoneNumber?.Trim())
-                .Set(u => u.City,             request.City?.Trim())
-                .Set(u => u.Biography,        request.Biography?.Trim())
-                .Set(u => u.ContentCategories,request.ContentCategories?.Trim())
-                .Set(u => u.InstagramHandle,  request.InstagramHandle?.Trim())
-                .Set(u => u.YoutubeHandle,    request.YoutubeHandle?.Trim())
-                .Set(u => u.TiktokHandle,     request.TiktokHandle?.Trim())
-                .Set(u => u.TelegramHandle,   request.TelegramHandle?.Trim());
+                .Set(u => u.FullName,           request.FullName?.Trim())
+                .Set(u => u.PhoneNumber,        request.PhoneNumber?.Trim())
+                .Set(u => u.City,               request.City?.Trim())
+                .Set(u => u.Biography,          request.Biography?.Trim())
+                .Set(u => u.ContentCategories,  request.ContentCategories?.Trim())
+                .Set(u => u.InstagramHandle,    request.InstagramHandle?.Trim())
+                .Set(u => u.YoutubeHandle,      request.YoutubeHandle?.Trim())
+                .Set(u => u.TiktokHandle,       request.TiktokHandle?.Trim())
+                .Set(u => u.TelegramHandle,     request.TelegramHandle?.Trim())
+                // ДОДАЄМО оновлення полів підписників
+                .Set(u => u.InstagramFollowers, request.InstagramFollowers)
+                .Set(u => u.YoutubeFollowers,   request.YoutubeFollowers)
+                .Set(u => u.TiktokFollowers,    request.TiktokFollowers)
+                .Set(u => u.TelegramFollowers,  request.TelegramFollowers);
 
             await _mongoContext.Users.UpdateOneAsync(filter, update);
             return NoContent();
@@ -225,6 +247,7 @@ namespace bestvinnytsa.web.Controllers
         }
     }
 
+    // DTOs для запитів
     public class UpdateCompanyProfileRequest
     {
         public string? CompanyName { get; set; }
@@ -249,5 +272,10 @@ namespace bestvinnytsa.web.Controllers
         public string? YoutubeHandle { get; set; }
         public string? TiktokHandle { get; set; }
         public string? TelegramHandle { get; set; }
+        // ДОДАЄМО нові поля для підписників
+        public int? InstagramFollowers { get; set; }
+        public int? YoutubeFollowers { get; set; }
+        public int? TiktokFollowers { get; set; }
+        public int? TelegramFollowers { get; set; }
     }
 }
