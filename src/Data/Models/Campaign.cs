@@ -12,7 +12,7 @@ namespace bestvinnytsa.web.Data.Models
     {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
-        public string Id { get; set; } = null!;
+        public string? Id { get; set; }
 
         [BsonElement("name")]
         public string Name { get; set; } = null!;
@@ -39,8 +39,8 @@ namespace bestvinnytsa.web.Data.Models
         /// ObjectId продюсера (AppUser.Id) як string.
         /// </summary>
         [BsonElement("producerId")]
-        [BsonRepresentation(BsonType.ObjectId)]
-        public string ProducerId { get; set; } = null!;
+        [BsonRepresentation(BsonType.ObjectId)]  
+        public string ProducerId { get; set; } = string.Empty; // Змінюємо з null! на string.Empty
 
         [BsonIgnore]
         public AppUser? Producer { get; set; }

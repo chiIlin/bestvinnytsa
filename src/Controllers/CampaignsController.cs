@@ -69,9 +69,32 @@ namespace bestvinnytsa.web.Controllers
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
+            // Перевіряємо обов'язкові поля
+            if (string.IsNullOrEmpty(newCampaign.Name))
+                return BadRequest(new { Message = "Name is required" });
+                
+            if (string.IsNullOrEmpty(newCampaign.Description))
+                return BadRequest(new { Message = "Description is required" });
+
+            // Встановлюємо ProducerId з JWT токена
             newCampaign.ProducerId = userId;
-            await _campaignService.CreateAsync(newCampaign);
-            return CreatedAtAction(nameof(GetById), new { id = newCampaign.Id }, newCampaign);
+            
+            // Встановлюємо значення за замовчуванням
+            if (newCampaign.Budget <= 0)
+                newCampaign.Budget = 1000;
+                
+            if (string.IsNullOrEmpty(newCampaign.Link))
+                newCampaign.Link = "";
+
+            try
+            {
+                await _campaignService.CreateAsync(newCampaign);
+                return CreatedAtAction(nameof(GetById), new { id = newCampaign.Id }, newCampaign);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = "Error creating campaign", Error = ex.Message });
+            }
         }
 
         /// <summary>
@@ -148,6 +171,23 @@ namespace bestvinnytsa.web.Controllers
 
             await _campaignService.DeleteAsync(id);
             return NoContent();
+        }
+
+        /// <summary>
+        /// Повертає всі доступні категорії.
+        /// </summary>
+        [HttpGet("categories")]
+        public async Task<IActionResult> GetCategories()
+        {
+            try
+            {
+                var categories = await _campaignService.GetCategoriesAsync();
+                return Ok(categories);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Помилка отримання категорій", error = ex.Message });
+            }
         }
     }
 }
