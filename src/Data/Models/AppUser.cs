@@ -62,6 +62,10 @@ namespace bestvinnytsa.web.Data.Models
         [BsonElement("telegramHandle")]
         [BsonIgnoreIfNull]
         public string? TelegramHandle { get; set; }
+        
+        [BsonElement("photoUrl")]
+        [BsonIgnoreIfNull]
+        public string? PhotoUrl { get; set; }
 
 
         // ======= Поля для компанії =======
