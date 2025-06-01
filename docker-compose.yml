@@ -19,32 +19,28 @@ services:
     container_name: bestvinnytsa-backend
     restart: always
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      MongoDbSettings__ConnectionString: "mongodb://mongo:mongo@mongodb:27017"
-      MongoDbSettings__Database: "bestvinnytsa"
+      ASPNETCORE_ENVIRONMENT: Production
+      MongoSettings__ConnectionString: "mongodb://mongo:mongo@mongodb:27017"
+      MongoSettings__DatabaseName: "bestvinnytsa"
     depends_on:
       - mongodb
     ports:
       - "5112:5112"
+    volumes:
+      - ./backend/src/wwwroot/uploads:/app/wwwroot/uploads
 
   frontend:
     build:
       context: ./frontend/inf-client
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: "https://www.liveonline.systems"
     container_name: bestvinnytsa-frontend
     restart: always
-    environment:
-      VITE_API_URL: "http://backend:5112"
     depends_on:
       - backend
     ports:
       - "8080:8080"
-    volumes:
-      - ./frontend/inf-client:/app
-      - /app/node_modules
-    working_dir: /app
-
-
 
 volumes:
   mongo-data:

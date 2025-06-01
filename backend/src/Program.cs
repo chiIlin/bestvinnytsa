@@ -102,6 +102,16 @@ builder.Services.AddSwaggerGen();
 // ----------------------------------------------------------------------
 builder.Services.AddDirectoryBrowser(); // необов’язково, але дозволяє переглядати вміст папки через браузер
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend",
+        policy => policy
+            .WithOrigins("https://www.liveonline.systems", "http://www.liveonline.systems")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials());
+});
+
 var app = builder.Build();
 
 // ----------------------------------------------------------------------
@@ -146,10 +156,7 @@ app.UseDirectoryBrowser(new DirectoryBrowserOptions
     RequestPath = "/uploads"
 });
 
-app.UseCors(policy =>
-    policy.AllowAnyOrigin()
-          .AllowAnyHeader()
-          .AllowAnyMethod());
+app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
 app.UseAuthorization();

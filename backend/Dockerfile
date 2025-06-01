@@ -9,10 +9,5 @@ RUN dotnet publish -c Release -o /app
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 COPY --from=build /app .
-COPY . .
-
-# Додаємо цю команду для заміни VITE_API_URL у .env або .env.production
-RUN sed -i 's|VITE_API_URL=.*|VITE_API_URL=http://backend:5112|' .env || echo "VITE_API_URL=http://backend:5112" >> .env
-
 EXPOSE 5112
-ENTRYPOINT ["dotnet", "YourBackendProject.dll"]
+ENTRYPOINT ["dotnet", "bestvinnytsa.web.dll"]
