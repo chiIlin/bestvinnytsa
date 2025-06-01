@@ -22,12 +22,12 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       MongoSettings__ConnectionString: "mongodb://mongo:mongo@mongodb:27017"
       MongoSettings__DatabaseName: "bestvinnytsa"
-      # Додайте ці налаштування для домену
-      ASPNETCORE_URLS: "http://+:5112"
+      # Змінено порт на 8080, оскільки backend слухає саме цей порт
+      ASPNETCORE_URLS: "http://+:8080"
     depends_on:
       - mongodb
     ports:
-      - "5112:5112"
+      - "8080:8080"  # змінено з 5112 на 8080
     volumes:
       - ./backend/src/wwwroot/uploads:/app/wwwroot/uploads
 
@@ -36,14 +36,14 @@ services:
       context: ./frontend/inf-client
       dockerfile: Dockerfile
       args:
-        # Змінено - для Docker мережі використовуємо ім'я сервісу
-        VITE_API_URL: "http://backend:5112"
+        # Оновлено URL для backend на правильний порт
+        VITE_API_URL: "http://backend:8080"
     container_name: bestvinnytsa-frontend
     restart: always
     depends_on:
       - backend
     ports:
-      - "8080:8080"
+      - "80:8080"  # Frontend доступний на 80 порту хоста
 
 volumes:
   mongo-data:
