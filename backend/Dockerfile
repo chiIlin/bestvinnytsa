@@ -14,6 +14,5 @@ COPY . .
 # Додаємо цю команду для заміни VITE_API_URL у .env або .env.production
 RUN sed -i 's|VITE_API_URL=.*|VITE_API_URL=http://backend:5112|' .env || echo "VITE_API_URL=http://backend:5112" >> .env
 
-RUN chmod +x entrypoint.sh
-EXPOSE 8080
-CMD ["sh", "./entrypoint.sh"]
+EXPOSE 5112
+ENTRYPOINT ["dotnet", "YourBackendProject.dll"]
