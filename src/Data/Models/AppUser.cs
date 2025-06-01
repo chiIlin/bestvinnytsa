@@ -125,5 +125,9 @@ namespace bestvinnytsa.web.Data.Models
 
         [BsonElement("role")]
         public string Role { get; set; } = null!;
+
+        // ДОДАЄМО нове поле для блокування
+        [BsonElement("isBlocked")]
+        public bool? IsBlocked { get; set; } = false;
     }
 }
