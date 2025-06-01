@@ -6,6 +6,7 @@ using MongoDB.Driver;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.Extensions.FileProviders;  // Додали для PhysicalFileProvider
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,32 +55,33 @@ builder.Services.Configure<JwtSettings>(
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<ICampaignService, CampaignService>();
 builder.Services.AddScoped<IApplicationService, ApplicationService>();
+builder.Services.AddScoped<IMessageService, MessageService>();
 
 // ----------------------------------------------------------------------
 // 6. Налаштовуємо JWT-Bearer
 // ----------------------------------------------------------------------
 var jwtSection = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSection.GetValue<string>("SecretKey");
-var issuer = jwtSection.GetValue<string>("Issuer");
-var audience = jwtSection.GetValue<string>("Audience");
+var issuer    = jwtSection.GetValue<string>("Issuer");
+var audience  = jwtSection.GetValue<string>("Audience");
 
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme    = JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true,
-        ValidIssuer = issuer,
-        ValidateAudience = true,
-        ValidAudience = audience,
+        ValidateIssuer           = true,
+        ValidIssuer              = issuer,
+        ValidateAudience         = true,
+        ValidAudience            = audience,
         ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!)),
-        ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero
+        IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!)),
+        ValidateLifetime         = true,
+        ClockSkew                = TimeSpan.Zero
     };
 });
 
@@ -96,10 +98,15 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// ----------------------------------------------------------------------
+// 8. Додаємо підтримку роздачі статичних файлів із wwwroot (для фото)
+// ----------------------------------------------------------------------
+builder.Services.AddDirectoryBrowser(); // необов’язково, але дозволяє переглядати вміст папки через браузер
+
 var app = builder.Build();
 
 // ----------------------------------------------------------------------
-// 8. Викликаємо Seeder (створюємо ролі та категорії, якщо їх нема)
+// 9. Викликаємо Seeder (створюємо ролі та категорії, якщо їх нема)
 // ----------------------------------------------------------------------
 using (var scope = app.Services.CreateScope())
 {
@@ -107,7 +114,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 // ----------------------------------------------------------------------
-// 9. Налаштовуємо middleware
+// 10. Налаштовуємо middleware
 // ----------------------------------------------------------------------
 if (app.Environment.IsDevelopment())
 {
@@ -124,7 +131,22 @@ else
 app.UseHttpsRedirection();
 app.UseRouting();
 
-// (Якщо треба CORS — додайте тут)
+// **Додаємо роздачу статичних файлів із wwwroot/uploads**  
+app.UseStaticFiles(); // роздаватиме весь wwwroot
+
+// Перевіряємо чи існує папка uploads перед налаштуванням DirectoryBrowser
+var uploadsPath = Path.Combine(app.Environment.WebRootPath, "uploads");
+if (!Directory.Exists(uploadsPath))
+{
+    Directory.CreateDirectory(uploadsPath);
+}
+
+app.UseDirectoryBrowser(new DirectoryBrowserOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads"
+});
+
 app.UseCors(policy =>
     policy.AllowAnyOrigin()
           .AllowAnyHeader()

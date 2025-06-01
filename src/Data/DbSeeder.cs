@@ -19,9 +19,10 @@ namespace bestvinnytsa.web.Data
 
             var rolesCollection = mongoContext.Roles;
             var categoriesCollection = mongoContext.Categories;
+            var usersCollection = mongoContext.Users;
 
             // 1) Seeder для ролей
-            string[] roles = new[] { "Producer", "Influencer" };
+            string[] roles = new[] { "Producer", "Influencer", "Admin" }; // ДОДАЛИ "Admin"
             foreach (var roleName in roles)
             {
                 string normalizedRole = roleName.ToUpperInvariant();
@@ -40,7 +41,30 @@ namespace bestvinnytsa.web.Data
                 }
             }
 
-            // 2) Seeder для категорій
+            // 2) Створюємо адміністративний акаунт
+            var adminEmail = "admin@admin";
+            var existingAdmin = await usersCollection
+                .Find(u => u.Email == adminEmail)
+                .FirstOrDefaultAsync();
+
+            if (existingAdmin == null)
+            {
+                var adminUser = new AppUser
+                {
+                    UserName = adminEmail,
+                    Email = adminEmail,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin"), // пароль: admin
+                    IsEmailConfirmed = true,
+                    Roles = new List<string> { "Admin" },
+                    FullName = "Системний адміністратор",
+                    IsBlocked = false
+                };
+
+                await usersCollection.InsertOneAsync(adminUser);
+                Console.WriteLine("Створено адміністративний акаунт: admin@admin / admin");
+            }
+
+            // 3) Seeder для категорій
             bool anyCategories = await categoriesCollection
                 .Find(_ => true)
                 .AnyAsync();

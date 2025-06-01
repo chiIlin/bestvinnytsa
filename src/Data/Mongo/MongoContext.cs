@@ -20,6 +20,8 @@ namespace bestvinnytsa.web.Data.Mongo
 		public IMongoCollection<Category> Categories => _database.GetCollection<Category>("Categories");
 		public IMongoCollection<Campaign> Campaigns => _database.GetCollection<Campaign>("Campaigns");
 		public IMongoCollection<Application> Applications => _database.GetCollection<Application>("Applications");
+		public IMongoCollection<Chat> Chats => _database.GetCollection<Chat>("Chats");
+		public IMongoCollection<Message> Messages => _database.GetCollection<Message>("Messages");
 	}
 }
 

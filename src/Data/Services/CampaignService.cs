@@ -52,13 +52,11 @@ namespace bestvinnytsa.web.Data.Services
         }
 
         /// <summary>
-        /// Повертає всі категорії з колекції Categories.
+        /// Повертає всі категорії.
         /// </summary>
         public async Task<List<Category>> GetCategoriesAsync()
         {
-            return await _categories
-                .Find(_ => true)
-                .ToListAsync();
+            return await _categories.Find(_ => true).ToListAsync();
         }
 
         /// <summary>
@@ -69,8 +67,21 @@ namespace bestvinnytsa.web.Data.Services
         /// </summary>
         public async Task CreateAsync(Campaign newCampaign)
         {
+            // Перевіряємо чи встановлено ProducerId
+            if (string.IsNullOrEmpty(newCampaign.ProducerId))
+            {
+                throw new ArgumentException("ProducerId is required");
+            }
+
+            // MongoDB автоматично створить Id, якщо його нема
+            if (string.IsNullOrEmpty(newCampaign.Id))
+            {
+                newCampaign.Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString();
+            }
+            
             newCampaign.CreatedAt = DateTime.UtcNow;
             newCampaign.IsOpen = true;
+            
             await _campaigns.InsertOneAsync(newCampaign);
         }
 

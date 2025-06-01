@@ -30,5 +30,11 @@ namespace bestvinnytsa.web.Data.DTOs
         public string? YoutubeHandle { get; set; }
         public string? TiktokHandle { get; set; }
         public string? TelegramHandle { get; set; }
+
+        // ДОДАЄМО нові поля для підписників
+        public int? InstagramFollowers { get; set; }
+        public int? YoutubeFollowers { get; set; }
+        public int? TiktokFollowers { get; set; }
+        public int? TelegramFollowers { get; set; }
     }
 }

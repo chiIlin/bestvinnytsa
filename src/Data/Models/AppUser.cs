@@ -63,6 +63,23 @@ namespace bestvinnytsa.web.Data.Models
         [BsonIgnoreIfNull]
         public string? TelegramHandle { get; set; }
 
+        // НОВІ ПОЛЯ - кількість підписників
+        [BsonElement("instagramFollowers")]
+        public int? InstagramFollowers { get; set; }
+    
+        [BsonElement("youtubeFollowers")]
+        public int? YoutubeFollowers { get; set; }
+    
+        [BsonElement("tiktokFollowers")]
+        public int? TiktokFollowers { get; set; }
+    
+        [BsonElement("telegramFollowers")]
+        public int? TelegramFollowers { get; set; }
+        
+        [BsonElement("photoUrl")]
+        [BsonIgnoreIfNull]
+        public string? PhotoUrl { get; set; }
+
 
         // ======= Поля для компанії =======
 
@@ -105,5 +122,12 @@ namespace bestvinnytsa.web.Data.Models
         [BsonElement("targetAudience")]
         [BsonIgnoreIfNull]
         public string? TargetAudience { get; set; }
+
+        [BsonElement("role")]
+        public string Role { get; set; } = null!;
+
+        // ДОДАЄМО нове поле для блокування
+        [BsonElement("isBlocked")]
+        public bool? IsBlocked { get; set; } = false;
     }
 }

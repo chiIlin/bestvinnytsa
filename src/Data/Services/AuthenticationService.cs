@@ -47,7 +47,7 @@ namespace bestvinnytsa.web.Data.Services
                 Email = request.Email.Trim().ToLower(),
                 PasswordHash = passwordHash,
                 IsEmailConfirmed = true,
-                Roles = new List<string> { "Person" },
+                Roles = new List<string> { "Person" }, // Залишаємо "Person"
 
                 FullName = request.FullName.Trim(),
                 PhoneNumber = request.PhoneNumber.Trim(),
@@ -57,7 +57,12 @@ namespace bestvinnytsa.web.Data.Services
                 InstagramHandle = request.InstagramHandle?.Trim(),
                 YoutubeHandle = request.YoutubeHandle?.Trim(),
                 TiktokHandle = request.TiktokHandle?.Trim(),
-                TelegramHandle = request.TelegramHandle?.Trim()
+                TelegramHandle = request.TelegramHandle?.Trim(),
+                // ДОДАЄМО підписників
+                InstagramFollowers = request.InstagramFollowers,
+                YoutubeFollowers = request.YoutubeFollowers,
+                TiktokFollowers = request.TiktokFollowers,
+                TelegramFollowers = request.TelegramFollowers
             };
 
             // 4. Вставляємо в MongoDB
@@ -101,7 +106,7 @@ namespace bestvinnytsa.web.Data.Services
                 Email = request.Email.Trim().ToLower(),
                 PasswordHash = passwordHash,
                 IsEmailConfirmed = true,
-                Roles = new List<string> { "Company" },
+                Roles = new List<string> { "Company" }, // Залишаємо "Company"
 
                 FullName = request.CompanyName.Trim(),
                 CompanyName = request.CompanyName.Trim(),
@@ -156,15 +161,22 @@ namespace bestvinnytsa.web.Data.Services
             // 3) Генеруємо токен
             string token = GenerateJwtToken(user);
 
-            // 4) Визначаємо роль: беремо першу роль із user.Roles
+            // 4) ОНОВЛЮЄМО: правильне визначення ролі з підтримкою Admin
             string role = user.Roles.Count > 0
                 ? user.Roles[0].Trim().ToLower()
                 : string.Empty;
 
-
+            // ЗМІНЮЄМО логіку конвертації ролей
             if (role == "person") role = "influencer";
-            if (role == "company") role = "company";
-            // Якщо роль якась інша, можна кинути помилку або задати дефолтне значення
+            else if (role == "company") role = "company";
+            else if (role == "admin") role = "admin"; // ДОДАЛИ підтримку admin
+            else
+            {
+                // Якщо роль невідома, кидаємо помилку
+                throw new Exception($"Невідома роль користувача: {role}");
+            }
+
+            Console.WriteLine($"User roles: {string.Join(", ", user.Roles)}, Final role: {role}");
 
             return new AuthResponse
             {
