@@ -9,6 +9,11 @@ RUN dotnet publish -c Release -o /app
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 COPY --from=build /app .
-EXPOSE 5112
-ENV ASPNETCORE_URLS=http://*:5112
-ENTRYPOINT ["dotnet", "bestvinnytsa.web.dll"]
+COPY . .
+
+# Додаємо цю команду для заміни VITE_API_URL у .env або .env.production
+RUN sed -i 's|VITE_API_URL=.*|VITE_API_URL=http://backend:5112|' .env || echo "VITE_API_URL=http://backend:5112" >> .env
+
+RUN chmod +x entrypoint.sh
+EXPOSE 8080
+CMD ["sh", "./entrypoint.sh"]
