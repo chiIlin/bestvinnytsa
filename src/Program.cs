@@ -55,6 +55,7 @@ builder.Services.Configure<JwtSettings>(
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<ICampaignService, CampaignService>();
 builder.Services.AddScoped<IApplicationService, ApplicationService>();
+builder.Services.AddScoped<IMessageService, MessageService>();
 
 // ----------------------------------------------------------------------
 // 6. Налаштовуємо JWT-Bearer
