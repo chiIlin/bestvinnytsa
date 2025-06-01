@@ -34,7 +34,7 @@ services:
     container_name: bestvinnytsa-frontend
     restart: always
     environment:
-      VITE_API_URL: "http://localhost:5112"
+      VITE_API_URL: "http://backend:5112"
     depends_on:
       - backend
     ports:
