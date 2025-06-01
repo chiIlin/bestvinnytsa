@@ -22,6 +22,8 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       MongoSettings__ConnectionString: "mongodb://mongo:mongo@mongodb:27017"
       MongoSettings__DatabaseName: "bestvinnytsa"
+      # Додайте ці налаштування для домену
+      ASPNETCORE_URLS: "http://+:5112"
     depends_on:
       - mongodb
     ports:
@@ -34,7 +36,8 @@ services:
       context: ./frontend/inf-client
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: "https://www.liveonline.systems"
+        # Змінено - для Docker мережі використовуємо ім'я сервісу
+        VITE_API_URL: "http://backend:5112"
     container_name: bestvinnytsa-frontend
     restart: always
     depends_on:
