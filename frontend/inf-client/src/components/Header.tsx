@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/base-ui";
 import { Menu, X, Users, Building2 } from "lucide-react";
+import axios from "axios";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -9,10 +10,52 @@ const Header = () => {
   const [role, setRole] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  // Функція для перевірки валідності токена
+  const validateToken = async () => {
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+    
+    if (!token || !role) {
+      setIsLoggedIn(false);
+      setRole(null);
+      return;
+    }
+
+    try {
+      // Вибираємо правильний ендпоінт залежно від ролі
+      const endpoint = role === "company" 
+        ? 'http://localhost:5112/api/profile/company'
+        : 'http://localhost:5112/api/profile/influencer';
+        
+      await axios.get(endpoint, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      // Якщо запит успішний, токен валідний
+      setIsLoggedIn(true);
+      setRole(role);
+    } catch (error) {
+      // Якщо запит неуспішний (401, 403), токен недійсний
+      console.log("Token validation failed:", error);
+      localStorage.removeItem("token");
+      localStorage.removeItem("role");
+      setIsLoggedIn(false);
+      setRole(null);
+      window.dispatchEvent(new Event("authStateChanged"));
+    }
+  };
+
   // Функція для оновлення стану аутентифікації
   const updateAuthState = () => {
-    setIsLoggedIn(!!localStorage.getItem("token"));
-    setRole(localStorage.getItem("role"));
+    const token = localStorage.getItem("token");
+    if (token) {
+      validateToken();
+    } else {
+      setIsLoggedIn(false);
+      setRole(null);
+    }
   };
 
   useEffect(() => {

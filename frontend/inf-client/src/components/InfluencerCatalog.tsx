@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Button,
@@ -11,92 +12,58 @@ import {
   SelectValue
 } from '@/components/ui/base-ui';
 import { Search, Instagram, MessageCircle, MapPin, Users, Eye } from 'lucide-react';
-
-const mockInfluencers = [
-  {
-    id: 1,
-    name: 'Анна Коваленко',
-    bio: 'Fashion блогер з Києва. Ділюся стилем та трендами моди.',
-    city: 'Київ',
-    followers: 25000,
-    engagement: '4.2%',
-    categories: ['Мода', 'Стиль життя'],
-    instagram: '@anna_style_ua',
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=150&h=150&fit=crop&crop=face'
-  },
-  {
-    id: 2,
-    name: 'Максим Петренко',
-    bio: 'Travel блогер. Показую красу України та світу. він чіловий чел',
-    city: 'Львів',
-    followers: 18500,
-    engagement: '5.8%',
-    categories: ['Подорожі', 'Фотографія'],
-    instagram: '@max_travels',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'
-  },
-  {
-    id: 3,
-    name: 'Олена Сидорова',
-    bio: 'Фітнес тренер та нутриціолог. Здорове харчування і спорт.',
-    city: 'Одеса',
-    followers: 32000,
-    engagement: '6.1%',
-    categories: ['Фітнес', 'Здоров\'я'],
-    instagram: '@elena_fit',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face'
-  },
-  {
-    id: 4,
-    name: 'Дмитро Іваненко',
-    bio: 'Tech блогер. Огляди гаджетів та технологічні новинки.',
-    city: 'Харків',
-    followers: 22000,
-    engagement: '3.9%',
-    categories: ['Технології', 'Гаджети'],
-    instagram: '@dmitro_tech',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
-  },
-  {
-    id: 5,
-    name: 'Марія Бойко',
-    bio: 'Beauty блогер. Makeup tutorials та огляди косметики.',
-    city: 'Дніпро',
-    followers: 41000,
-    engagement: '7.2%',
-    categories: ['Краса', 'Макіяж'],
-    instagram: '@maria_beauty',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face'
-  },
-  {
-    id: 6,
-    name: 'Артем Мельник',
-    bio: 'Food блогер з Києва. Рецепти та огляди ресторанів.',
-    city: 'Київ',
-    followers: 19500,
-    engagement: '4.8%',
-    categories: ['Їжа', 'Ресторани'],
-    instagram: '@artem_foodie',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face'
-  }
-];
+import { Link } from 'react-router-dom';
 
 const categories = ['Всі', 'Мода', 'Стиль життя', 'Подорожі', 'Фотографія', 'Фітнес', 'Здоров\'я', 'Технології', 'Гаджети', 'Краса', 'Макіяж', 'Їжа', 'Ресторани'];
 const cities = ['Всі міста', 'Київ', 'Львів', 'Одеса', 'Харків', 'Дніпро'];
 
 const InfluencerCatalog = () => {
+  const [influencers, setInfluencers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Всі');
   const [selectedCity, setSelectedCity] = useState('Всі міста');
   const [minFollowers, setMinFollowers] = useState('');
 
-  const filteredInfluencers = mockInfluencers.filter(influencer => {
-    const matchesSearch = influencer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         influencer.bio.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'Всі' || influencer.categories.includes(selectedCategory);
-    const matchesCity = selectedCity === 'Всі міста' || influencer.city === selectedCity;
-    const matchesFollowers = !minFollowers || influencer.followers >= parseInt(minFollowers);
-    
+  useEffect(() => {
+    const fetchInfluencers = async () => {
+      setLoading(true);
+      try {
+        const res = await axios.get('http://localhost:5112/api/profile/influencers');
+        console.log('Дані з беку:', res.data); // Додаємо логування
+        const mapped = res.data.map((inf: any) => ({
+          id: inf.id,
+          name: inf.fullName,
+          bio: inf.biography,
+          city: inf.city,
+          categories: (inf.contentCategories || '').split(',').map((c: string) => c.trim()).filter(Boolean),
+          instagram: inf.instagramHandle,
+          followers: inf.instagramFollowers || 0,
+          engagement: '',
+          avatar: inf.photoUrl || '/default-avatar.png'
+        }));
+        setInfluencers(mapped);
+      } catch (err) {
+        setInfluencers([]);
+        console.error('Помилка при отриманні інфлюенсерів:', err); // Додаємо логування помилки
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInfluencers();
+  }, []);
+
+  const filteredInfluencers = influencers.filter(influencer => {
+    const matchesSearch =
+      influencer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      influencer.bio?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory =
+      selectedCategory === 'Всі' || influencer.categories.includes(selectedCategory);
+    const matchesCity =
+      selectedCity === 'Всі міста' || influencer.city === selectedCity;
+    const matchesFollowers =
+      !minFollowers || influencer.followers >= parseInt(minFollowers);
+
     return matchesSearch && matchesCategory && matchesCity && matchesFollowers;
   });
 
@@ -211,10 +178,13 @@ const InfluencerCatalog = () => {
                 </div>
                 
                 <Button 
+                  asChild
                   className="w-full bg-gradient-to-r from-ua-pink to-ua-pink-soft hover:from-ua-pink-soft hover:to-ua-pink text-white"
                 >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Зв'язатися
+                  <Link to={`/messages/${influencer.id}`}>
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Зв'язатися
+                  </Link>
                 </Button>
               </CardContent>
             </Card>

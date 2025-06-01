@@ -13,7 +13,8 @@ import {
 } from '@/components/ui/base-ui';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Users, Instagram, Youtube, Camera, Upload, MessageCircle } from 'lucide-react';
+// ДОДАЙТЕ ЦІ ІМПОРТИ:
+import { Users, Camera, Instagram, Youtube, Upload, MessageCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import axios from 'axios';
 
@@ -106,6 +107,11 @@ const InfluencerProfile = () => {
           tiktokFollowers: profile.tiktokFollowers ? profile.tiktokFollowers.toLocaleString('uk-UA') : '',
           telegramFollowers: profile.telegramFollowers ? profile.telegramFollowers.toLocaleString('uk-UA') : ''
         });
+        
+        // ДОДАЙТЕ: завантаження фото профілю
+        if (profile.photoUrl) {
+          setAvatarPreview(`http://localhost:5112${profile.photoUrl}`);
+        }
       } catch (error) {
         console.error('Error fetching profile:', error);
         toast({
@@ -125,14 +131,70 @@ const InfluencerProfile = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // ВИДАЛІТЬ ЦЮ ФУНКЦІЮ (стара версія):
+  // const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = event.target.files?.[0];
+  //   if (file) {
+  //     const reader = new FileReader();
+  //     reader.onload = (e) => {
+  //       setAvatarPreview(e.target?.result as string);
+  //     };
+  //     reader.readAsDataURL(file);
+  //   }
+  // };
+
+  // ДОДАЙТЕ цю функцію для завантаження фото на сервер
+  const handleUploadPhoto = async (file: File) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast({
+          title: "Помилка",
+          description: "Необхідно увійти в систему",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await axios.post('http://localhost:5112/api/profile/influencer/photo', formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      setAvatarPreview(`http://localhost:5112${response.data.photoUrl}`);
+      
+      toast({
+        title: "Фото завантажено",
+        description: "Ваше фото профілю успішно оновлено.",
+      });
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      toast({
+        title: "Помилка",
+        description: "Не вдалося завантажити фото",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // ЗАЛИШІТЬ ТІЛЬКИ ЦЮ ВЕРСІЮ handleAvatarChange (оновлену):
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Попередній перегляд
       const reader = new FileReader();
       reader.onload = (e) => {
         setAvatarPreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
+      
+      // Завантаження на сервер
+      await handleUploadPhoto(file);
     }
   };
 

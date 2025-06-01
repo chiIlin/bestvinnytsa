@@ -80,6 +80,11 @@ const BrandProfile = () => {
           budget: profile.budgetRange || '',
           targetAudience: profile.targetAudience || ''
         });
+        
+        // ДОДАЙТЕ: завантаження логотипу
+        if (profile.photoUrl) {
+          setLogoPreview(`http://localhost:5112${profile.photoUrl}`);
+        }
       } catch (error) {
         console.error('Error fetching profile:', error);
         toast({
@@ -99,14 +104,58 @@ const BrandProfile = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // ДОДАЙТЕ функцію завантаження логотипу
+  const handleUploadLogo = async (file: File) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast({
+          title: "Помилка",
+          description: "Необхідно увійти в систему",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await axios.post('http://localhost:5112/api/profile/company/photo', formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      setLogoPreview(`http://localhost:5112${response.data.photoUrl}`);
+      
+      toast({
+        title: "Логотип завантажено",
+        description: "Логотип компанії успішно оновлено.",
+      });
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      toast({
+        title: "Помилка",
+        description: "Не вдалося завантажити логотип",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // ОНОВІТЬ handleLogoChange
+  const handleLogoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Попередній перегляд
       const reader = new FileReader();
       reader.onload = (e) => {
         setLogoPreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
+      
+      // Завантаження на сервер
+      await handleUploadLogo(file);
     }
   };
 
