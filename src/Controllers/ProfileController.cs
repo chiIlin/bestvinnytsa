@@ -245,6 +245,36 @@ namespace bestvinnytsa.web.Controllers
 
             return Ok(new { PhotoUrl = relativePath });
         }
+
+        /// <summary>
+        /// Отримати всіх інфлюенсерів
+        /// </summary>
+        [HttpGet("influencers")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetAllInfluencers()
+        {
+            var influencers = await _mongoContext.Users
+                .Find(u => u.Roles.Contains("Person")) // <-- Ось так!
+                .Project(u => new {
+                    id = u.Id,
+                    fullName = u.FullName,
+                    biography = u.Biography,
+                    city = u.City,
+                    contentCategories = u.ContentCategories,
+                    instagramHandle = u.InstagramHandle,
+                    instagramFollowers = u.InstagramFollowers,
+                    photoUrl = u.PhotoUrl
+                })
+                .ToListAsync();
+
+            Console.WriteLine($"Influencers found: {influencers.Count}");
+            foreach (var inf in influencers)
+            {
+                Console.WriteLine($"Influencer: {inf.fullName} ({inf.id})");
+            }
+
+            return Ok(influencers);
+        }
     }
 
     // DTOs для запитів

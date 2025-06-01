@@ -122,5 +122,8 @@ namespace bestvinnytsa.web.Data.Models
         [BsonElement("targetAudience")]
         [BsonIgnoreIfNull]
         public string? TargetAudience { get; set; }
+
+        [BsonElement("role")]
+        public string Role { get; set; } = null!;
     }
 }
